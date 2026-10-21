@@ -37,9 +37,15 @@ jobs:
       - name: Build APK
         run: gradle --no-daemon --stacktrace assembleDebug
 
-      - name: Upload APK
+            - name: Rename APK
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk dist/NODE-Player.apk
+
+      - name: Upload NODE Player APK
         uses: actions/upload-artifact@v4
         with:
-          name: NODE-Player-Mobile-v0.1.0-TEST-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: NODE-Player-v0.1.2-TEST-APK
+          path: dist/NODE-Player.apk
           if-no-files-found: error
+          retention-days: 30
