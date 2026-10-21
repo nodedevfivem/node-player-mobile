@@ -37,7 +37,7 @@ jobs:
       - name: Build APK
         run: gradle --no-daemon --stacktrace assembleDebug
 
-            - name: Rename APK
+      - name: Rename APK
         run: |
           mkdir -p dist
           cp app/build/outputs/apk/debug/app-debug.apk dist/NODE-Player.apk
