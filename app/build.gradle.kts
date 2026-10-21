@@ -18,8 +18,8 @@ android {
         applicationId = "com.nodedevelopment.nodeplayermobile"
         minSdk = 29
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.1"
         buildConfigField("String", "GITHUB_OWNER", "\"nodedevfivem\"")
         // Create this repository on GitHub before publishing updates.
         buildConfigField("String", "GITHUB_REPO", "\"NODE-Player-Mobile\"")

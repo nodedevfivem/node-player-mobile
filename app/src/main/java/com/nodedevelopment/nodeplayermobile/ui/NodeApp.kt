@@ -4,6 +4,12 @@ import android.content.Context
 import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.*
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,6 +29,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -80,6 +88,12 @@ fun NodeApp(
         var playlistOpen by remember { mutableStateOf<MusicPlaylist?>(null) }
         var group by remember { mutableStateOf<Pair<String, String>?>(null) }
         var addSong by remember { mutableStateOf<Song?>(null) }
+        var renamingSong by remember { mutableStateOf<Song?>(null) }
+        var editedTitle by remember { mutableStateOf("") }
+        val openRename: (Song) -> Unit = { song ->
+            renamingSong = song
+            editedTitle = song.title
+        }
         var search by remember { mutableStateOf("") }
         val current = library.songs.firstOrNull { it.id == playback.mediaId }
         BackHandler(enabled = playerOpen || playlistOpen != null || group != null || page != "Home") {
@@ -136,7 +150,8 @@ fun NodeApp(
                             onFavorite = { if (current != null) vm.favorite(current) })
                     } else when (page) {
                         "Home" -> HomeScreen(library.songs, library.recent, library.favorites, library.scanning,
-                            importFiles = importFiles,
+                            currentSongId = playback.mediaId, isPlaying = playback.playing,
+                            onRename = openRename, importFiles = importFiles,
                             onRescan = vm::refresh,
                             onClick = { play -> vm.hub.play(library.songs, play) },
                             onFavorites = { page = "Library"; group = "Favorites" to "" },
@@ -144,17 +159,20 @@ fun NodeApp(
                             onAlbums = { page = "Library"; group = "Albums" to "" },
                             onAll = { page = "Library"; group = null })
                         "Library" -> LibraryScreen(library.songs, library.favorites,
-                            group, search, onSearch = { search = it }, onGroup = { group = it },
+                            group, search, currentSongId = playback.mediaId, isPlaying = playback.playing,
+                            onSearch = { search = it }, onGroup = { group = it },
                             onPlay = { songs, song -> vm.hub.play(songs, song) },
                             onFavorite = { vm.favorite(it) },
-                            onAdd = { addSong = it }, onImport = importFiles,
+                            onAdd = { addSong = it }, onRename = openRename,
+                            onImport = importFiles,
                             onRefresh = vm::refresh,
                             allowPermission = hasPermission, requestPermission = requestPermission)
                         "Playlists" -> PlaylistScreen(vm, library.songs, library.playlists,
-                            playlistOpen, onOpen = { playlistOpen = it },
+                            playlistOpen, currentSongId = playback.mediaId, isPlaying = playback.playing,
+                            onOpen = { playlistOpen = it },
                             onPlay = { songs, song -> vm.hub.play(songs, song) },
                             onAdd = { addSong = it }, onFavorite = { vm.favorite(it) },
-                            favorites = library.favorites)
+                            onRename = openRename, favorites = library.favorites)
                         "Settings" -> SettingsScreen(vm,
                             folder = vm.repository.folder?.toString(),
                             onChooseFolder = chooseFolder, onDefaultFolder = defaultFolder,
@@ -173,6 +191,45 @@ fun NodeApp(
                     }
                 }
             }
+        }
+        if (renamingSong != null) {
+            val target = renamingSong!!
+            AlertDialog(
+                onDismissRequest = { renamingSong = null },
+                title = { Text("Edit song name") },
+                text = {
+                    Column {
+                        OutlinedTextField(
+                            value = editedTitle,
+                            onValueChange = { editedTitle = it.take(120) },
+                            label = { Text("Name shown in NODE Player") },
+                            supportingText = { Text("${editedTitle.length}/120 characters") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        Text(
+                            "Changes the title displayed inside NODE Player only. " +
+                                "Your MP3 filename and embedded metadata are not modified.",
+                            color = MUTED, fontSize = 12.sp
+                        )
+                        if (target.id in library.customTitleIds) {
+                            Spacer(Modifier.height(8.dp))
+                            TextButton(onClick = {
+                                vm.restoreOriginalSongTitle(target)
+                                renamingSong = null
+                            }) { Text("Restore original title") }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(enabled = editedTitle.isNotBlank(), onClick = {
+                        vm.renameSong(target, editedTitle)
+                        renamingSong = null
+                    }) { Text("Save name") }
+                },
+                dismissButton = { TextButton(onClick = { renamingSong = null }) { Text("Cancel") } }
+            )
         }
         if (addSong != null) {
             AlertDialog(onDismissRequest = { addSong = null },
@@ -254,6 +311,8 @@ private fun PrimaryButton(text: String, icon: ImageVector? = null, onClick: () -
 @Composable
 private fun HomeScreen(
     songs: List<Song>, recent: List<String>, favorites: Set<String>, scanning: Boolean,
+    currentSongId: String?, isPlaying: Boolean,
+    onRename: (Song) -> Unit,
     importFiles: () -> Unit, onRescan: () -> Unit, onClick: (Song) -> Unit,
     onFavorites: () -> Unit, onArtists: () -> Unit, onAlbums: () -> Unit, onAll: () -> Unit
 ) {
@@ -310,7 +369,11 @@ private fun HomeScreen(
             }
         }
         if (latest.isEmpty()) item { EmptyState("No music yet", "Import MP3 files or copy them into your Music folder.", Icons.Default.MusicOff) }
-        items(latest, key = { it.id }) { song -> SongRow(song, onClick = { onClick(song) }) }
+        items(latest, key = { it.id }) { song ->
+            SongRow(song, onClick = { onClick(song) },
+                isCurrent = song.id == currentSongId, isPlaying = isPlaying,
+                onRename = { onRename(song) })
+        }
     }
 }
 
@@ -330,9 +393,11 @@ private fun LibraryTile(title: String, count: String, icon: ImageVector, modifie
 @Composable
 private fun LibraryScreen(
     songs: List<Song>, favorites: Set<String>, group: Pair<String, String>?, search: String,
+    currentSongId: String?, isPlaying: Boolean,
     onSearch: (String) -> Unit, onGroup: (Pair<String, String>?) -> Unit,
     onPlay: (List<Song>, Song) -> Unit, onFavorite: (Song) -> Unit,
-    onAdd: (Song) -> Unit, onImport: () -> Unit, onRefresh: () -> Unit,
+    onAdd: (Song) -> Unit, onRename: (Song) -> Unit,
+    onImport: () -> Unit, onRefresh: () -> Unit,
     allowPermission: Boolean, requestPermission: () -> Unit
 ) {
     var sort by remember { mutableStateOf("Title") }
@@ -407,7 +472,9 @@ private fun LibraryScreen(
             LazyColumn {
                 items(matching, key = { it.id }) { song ->
                     SongRow(song, onClick = { onPlay(matching, song) }, isFavorite = song.id in favorites,
-                        onFavorite = { onFavorite(song) }, onAdd = { onAdd(song) })
+                        isCurrent = song.id == currentSongId, isPlaying = isPlaying,
+                        onFavorite = { onFavorite(song) }, onAdd = { onAdd(song) },
+                        onRename = { onRename(song) })
                 }
             }
         }
@@ -456,25 +523,98 @@ private fun SongArtwork(song: Song?, modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * Cosmetic playback indicator; shows player state without requesting microphone/audio capture.
+ * Compose creates the three repeating animations only for the one ACTIVE visible row.
+ * When paused, the static bars remain visible and no infinite animation is running.
+ */
+@Composable
+private fun NowPlayingBars(playing: Boolean, modifier: Modifier = Modifier) {
+    val heights: List<Float> = if (playing) {
+        val motion = rememberInfiniteTransition(label = "Current track equalizer")
+        val low by motion.animateFloat(
+            initialValue = 0.30f, targetValue = 0.95f,
+            animationSpec = infiniteRepeatable(tween(510, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+            label = "Left bar"
+        )
+        val mid by motion.animateFloat(
+            initialValue = 0.90f, targetValue = 0.20f,
+            animationSpec = infiniteRepeatable(tween(720, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+            label = "Middle bar"
+        )
+        val high by motion.animateFloat(
+            initialValue = 0.45f, targetValue = 0.98f,
+            animationSpec = infiniteRepeatable(tween(610, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+            label = "Right bar"
+        )
+        listOf(low, mid, high)
+    } else {
+        listOf(0.32f, 0.32f, 0.32f)
+    }
+    Row(modifier.width(19.dp).height(19.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        verticalAlignment = Alignment.Bottom) {
+        heights.forEach { height ->
+            Box(Modifier.width(4.dp).fillMaxHeight(height).clip(RoundedCornerShape(3.dp))
+                .background(if (playing) CYAN else MUTED))
+        }
+    }
+}
+
 @Composable
 private fun SongRow(
     song: Song, onClick: () -> Unit,
-    isFavorite: Boolean = false, onFavorite: (() -> Unit)? = null, onAdd: (() -> Unit)? = null
+    isFavorite: Boolean = false, onFavorite: (() -> Unit)? = null, onAdd: (() -> Unit)? = null,
+    onRename: (() -> Unit)? = null,
+    isCurrent: Boolean = false, isPlaying: Boolean = false
 ) {
     var menu by remember { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically) {
+    val rowModifier = Modifier.fillMaxWidth()
+        .padding(horizontal = 9.dp, vertical = 2.dp)
+        .clip(RoundedCornerShape(13.dp))
+        .background(if (isCurrent) Color(0xFF0B2B43) else BG)
+        .clickable(onClick = onClick)
+        .then(if (isCurrent) Modifier.semantics {
+            stateDescription = if (isPlaying) "Now playing" else "Current track paused"
+        } else Modifier)
+        .padding(horizontal = 7.dp, vertical = 6.dp)
+    Row(rowModifier, verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.width(3.dp).height(43.dp).clip(RoundedCornerShape(3.dp))
+            .background(if (isCurrent) CYAN else Color.Transparent))
+        Spacer(Modifier.width(6.dp))
         SongArtwork(song, Modifier.size(53.dp))
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(song.title, color = WHITE, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)
-            Text(song.artist, color = MUTED, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(song.title, color = if (isCurrent) CYAN else WHITE, maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium)
+            if (isCurrent) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(if (isPlaying) "NOW PLAYING" else "PAUSED", color = CYAN,
+                        fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1)
+                    Spacer(Modifier.width(6.dp))
+                    Text("•", color = MUTED, fontSize = 10.sp)
+                    Spacer(Modifier.width(6.dp))
+                    Text(song.artist, color = MUTED, fontSize = 12.sp,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            } else {
+                Text(song.artist, color = MUTED, fontSize = 12.sp,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
         }
-        Text(timeText(song.durationMs), color = MUTED, fontSize = 11.sp)
-        if (onFavorite != null || onAdd != null) {
+        if (isCurrent) {
+            NowPlayingBars(isPlaying, modifier = Modifier.padding(end = 9.dp))
+        }
+        Text(timeText(song.durationMs), color = if (isCurrent) CYAN else MUTED, fontSize = 11.sp)
+        if (onFavorite != null || onAdd != null || onRename != null) {
             Box {
                 IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreVert, "Song actions", tint = MUTED) }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                    if (onRename != null) DropdownMenuItem(
+                        text = { Text("Edit song name") },
+                        leadingIcon = { Icon(Icons.Default.Edit, null) },
+                        onClick = { menu = false; onRename() })
                     if (onFavorite != null) DropdownMenuItem(
                         text = { Text(if (isFavorite) "Remove Favorite" else "Add to Favorites") },
                         leadingIcon = { Icon(if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, null) },
@@ -573,8 +713,10 @@ private fun timeText(time: Long): String {
 private fun PlaylistScreen(
     vm: MainViewModel,
     allSongs: List<Song>, playlists: List<MusicPlaylist>, selected: MusicPlaylist?,
+    currentSongId: String?, isPlaying: Boolean,
     onOpen: (MusicPlaylist?) -> Unit, onPlay: (List<Song>, Song) -> Unit,
-    onAdd: (Song) -> Unit, onFavorite: (Song) -> Unit, favorites: Set<String>
+    onAdd: (Song) -> Unit, onFavorite: (Song) -> Unit,
+    onRename: (Song) -> Unit, favorites: Set<String>
 ) {
     var createDialog by remember { mutableStateOf(false) }
     var deleteDialog by remember { mutableStateOf(false) }
@@ -614,7 +756,9 @@ private fun PlaylistScreen(
                         Box(Modifier.weight(1f)) {
                             SongRow(track, onClick = { onPlay(tracks, track) },
                                 isFavorite = track.id in favorites,
-                                onFavorite = { onFavorite(track) }, onAdd = { onAdd(track) })
+                                isCurrent = track.id == currentSongId, isPlaying = isPlaying,
+                                onFavorite = { onFavorite(track) }, onAdd = { onAdd(track) },
+                                onRename = { onRename(track) })
                         }
                         IconButton(onClick = {
                             vm.removeFromPlaylist(selected.id, track)

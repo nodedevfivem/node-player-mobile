@@ -1,4 +1,4 @@
-# NODE Player Mobile v0.1.0 — build APK without Android Studio
+# NODE Player Mobile v0.1.1 — build APK without Android Studio
 
 You do not need Android Studio, Java, or the Android SDK installed on your PC.
 GitHub Actions builds the APK on a hosted build runner and provides it as a downloadable artifact.
@@ -17,7 +17,7 @@ GitHub Actions builds the APK on a hosted build runner and provides it as a down
 4. Click **Run workflow** and run it on `main` (or select the newest run automatically started after an upload).
 5. Wait for a green check (if a red X appears, open the job log and send the error to ChatGPT for a code fix).
 6. Open that run and scroll to **Artifacts**.
-7. Download `NODE-Player-Mobile-v0.1.0-TEST-APK.zip`.
+7. Download `NODE-Player-Mobile-v0.1.1-TEST-APK.zip`.
 8. Extract the APK (`app-debug.apk`) and open it on your Android device. You may need to allow installing apps from that source.
 
 ## IMPORTANT: test APK versus official release APK

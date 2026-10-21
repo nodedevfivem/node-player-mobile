@@ -46,15 +46,43 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         libraryScan?.cancel()
         libraryScan = viewModelScope.launch {
             stateMutable.value = stateMutable.value.copy(scanning = true)
-            val songs = repository.scan()
-            hub.restoreIfEmpty(songs)
+            val scanned = repository.scan()
             val extras = withContext(Dispatchers.IO) {
-                Triple(store.favorites(), store.playlists(), store.recent())
+                LibraryExtras(store.favorites(), store.playlists(), store.recent(), store.customTitles())
             }
-            stateMutable.value = LibraryState(songs, extras.first, extras.second, extras.third, scanning = false)
+            val songs = scanned.map { song ->
+                extras.titles[song.id]?.let { song.copy(title = it) } ?: song
+            }
+            hub.restoreIfEmpty(songs)
+            stateMutable.value = LibraryState(
+                songs = songs, favorites = extras.favorites, playlists = extras.playlists,
+                recent = extras.recent, customTitleIds = extras.titles.keys, scanning = false
+            )
         }
     }
     fun setFolder(uri: Uri?) { repository.selectFolder(uri); refresh() }
+
+    /** Rename the title inside NODE Player only. Never alter or move the original music file. */
+    fun renameSong(song: Song, input: String) {
+        val clean = input.trim().replace(Regex("[\r\n\t]+"), " ").take(120)
+        if (clean.isEmpty()) { say("Song title cannot be empty"); return }
+        viewModelScope.launch(Dispatchers.IO) {
+            store.setCustomTitle(song.id, clean)
+            withContext(Dispatchers.Main) {
+                stateMutable.value = stateMutable.value.copy(
+                    songs = stateMutable.value.songs.map {
+                        if (it.id == song.id) it.copy(title = clean) else it
+                    },
+                    customTitleIds = stateMutable.value.customTitleIds + song.id
+                )
+            }
+        }
+    }
+
+    fun restoreOriginalSongTitle(song: Song) = viewModelScope.launch(Dispatchers.IO) {
+        store.setCustomTitle(song.id, null)
+        withContext(Dispatchers.Main) { refresh() }
+    }
     fun favorite(song: Song) = viewModelScope.launch(Dispatchers.IO) {
         store.toggleFavorite(song.id)
         val fresh = store.favorites()
@@ -116,11 +144,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     override fun onCleared() { hub.disconnect(); store.close(); super.onCleared() }
 }
 
+private data class LibraryExtras(
+    val favorites: Set<String>,
+    val playlists: List<MusicPlaylist>,
+    val recent: List<String>,
+    val titles: Map<String, String>
+)
+
 data class LibraryState(
     val songs: List<Song> = emptyList(),
     val favorites: Set<String> = emptySet(),
     val playlists: List<MusicPlaylist> = emptyList(),
     val recent: List<String> = emptyList(),
+    val customTitleIds: Set<String> = emptySet(),
     val scanning: Boolean = false,
     val importing: Boolean = false,
     val importedProgress: String = ""

@@ -1,19 +1,31 @@
-# NODE Player Mobile — v0.1.0 source starter
+# NODE Player Mobile — v0.1.1 source update
 
 A dark cyan-and-chrome themed, 100% offline-first Android music player created for NODE Development. Official NODE Player logo included under `app/src/main/res/drawable-nodpi`.
 
-## Status — SOURCE ONLY
+## Status — v0.1.1 SOURCE ONLY (build not yet verified)
 
-Complete **initial Android Studio source project**; it has not been compiled or exercised on an Android device in the generation environment (no Android SDK/Gradle/network present). If Android Studio reports a build error, provide the exact output to make a targeted fix. Do not publish before testing.
+User confirmed v0.1.0 compiles on GitHub Actions and plays music on Android; screenshot confirms songs detected and playback working. The v0.1.1 modifications have **not yet** been Android-compiled or tested on the phone. If GitHub Actions reports an error, use the build logs for a targeted fix. Do not publish this update before testing.
+
+### What's new in v0.1.1
+
+- Cyan row highlight and left-edge marker show the current track in All Songs/filtered Library, Home recent songs and Playlists.
+- Three short animated equalizer-style bars indicate playing status and stop moving on pause (cosmetic, not an actual frequency analyzer).
+- Clear `NOW PLAYING` / `PAUSED` labels; follows automatic next-song transitions.
+- Library/Home/playlist song menus now offer **Edit song name**. Rename and restore the original title; the custom name persists across rescan and app restarts.
+- User-given song titles are stored as local, URI-keyed overrides in a new SQLite table. Existing library data survives an additive database migration from schema 1 to 2; source audio files/tags are never modified.
+- Same Android package ID and permissions; `versionCode=2`, `versionName=0.1.1`.
+- GitHub Actions debug artifact is now `NODE-Player-Mobile-v0.1.1-TEST-APK`.
+- NOTE: GitHub-hosted debug APKs may have different signing keys across builds. A new debug APK might not install over v0.1.0. Prefer setting up permanent private release signing before relying on in-place updates; uninstalling deletes local preferences/favorites/playlists.
+
 
 ## Android / stack
 
 - Android 10+ (`minSdk=29`), Kotlin 2.0.21, Jetpack Compose, Android Media3 player and MediaSessionService.
 - Android Gradle Plugin 8.9.2, Gradle 8.11.1, JDK 17+, compileSdk 35.
-- No internet account, no cloud DB, no Supabase, no Firebase. Local SQLite for favorites/playlists/recent plays; SharedPreferences for folder choice.
+- No internet account, no cloud DB, no Supabase, no Firebase. Local SQLite for favorites/playlists/recent plays/custom song names; SharedPreferences for folder choice.
 - Offline playback and import; internet is only for optional GitHub release checks/downloads.
 
-## Implemented in the v0.1.0 foundation
+## Implemented in the v0.1.0 foundation (preserved in v0.1.1)
 
 - Native home dashboard, official logo, first-run default/custom music folder selection.
 - Scan ONLY `Internal Storage/Music/` (including subfolders) via MediaStore, or an explicitly chosen SAF folder. Safe manual Refresh and change-triggered refresh while the app is foregrounded.
@@ -32,7 +44,7 @@ The repository also includes a GitHub Actions workflow (`.github/workflows/debug
 
 ## Recommended: get your APK with GitHub Actions (Android Studio NOT required)
 
-Read `START-HERE-BUILD-APK-WITHOUT-ANDROID-STUDIO.md`. This repository includes `.github/workflows/debug-build.yml` to build a test APK on GitHub using Gradle directly (no wrapper jar necessary on GitHub). This workflow has NOT run yet, so compilation is not verified. Publishing to GitHub and running Actions requires repository access.
+Read `START-HERE-BUILD-APK-WITHOUT-ANDROID-STUDIO.md`. This repository includes `.github/workflows/debug-build.yml` to build a test APK on GitHub using Gradle directly (no wrapper jar necessary on GitHub). GitHub Actions successfully compiled v0.1.0 in the user repository; v0.1.1 has not run yet. Publishing to GitHub and running Actions requires repository access.
 
 ## Alternative: open in Android Studio
 
@@ -51,4 +63,4 @@ Audio is read from `Music/` unless the user chooses another folder. Imported aud
 
 ## Repo and version conventions
 
-Source config currently points to owner `nodedevfivem`, repository `NODE-Player-Mobile` as the proposed project name. Create that repo or update the config before releasing. Version 0.1.0 / versionCode 1. Do not rename app ID or lose release signing key after publishing.
+Source config currently points to owner `nodedevfivem`, repository `NODE-Player-Mobile` as the proposed project name. Create that repo or update the config before releasing. Version 0.1.1 / versionCode 2. Do not rename app ID or lose release signing key after publishing.
