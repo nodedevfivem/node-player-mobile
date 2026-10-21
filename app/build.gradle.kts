@@ -9,6 +9,17 @@ plugins {
 val signingProps = Properties()
 val signingFile = rootProject.file("signing.properties")
 if (signingFile.exists()) signingFile.inputStream().use { signingProps.load(it) }
+// On GitHub Actions, credentials arrive via encrypted repository Secrets.
+// On a Windows PC, they may come from the untracked signing.properties file.
+fun signingValue(env: String, prop: String): String? =
+    System.getenv(env)?.takeIf { it.isNotBlank() }
+        ?: signingProps.getProperty(prop)?.takeIf { it.isNotBlank() }
+val signingStorePath = signingValue("NODE_PLAYER_KEYSTORE_PATH", "storeFile")
+val signingStorePassword = signingValue("NODE_PLAYER_STORE_PASSWORD", "storePassword")
+val signingKeyAlias = signingValue("NODE_PLAYER_KEY_ALIAS", "keyAlias")
+val signingKeyPassword = signingValue("NODE_PLAYER_KEY_PASSWORD", "keyPassword")
+val releaseSigningReady = listOf(signingStorePath, signingStorePassword,
+    signingKeyAlias, signingKeyPassword).all { !it.isNullOrBlank() }
 
 android {
     namespace = "com.nodedevelopment.nodeplayermobile"
@@ -18,26 +29,26 @@ android {
         applicationId = "com.nodedevelopment.nodeplayermobile"
         minSdk = 29
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.1.1"
+        versionCode = 3
+        versionName = "0.1.2"
         buildConfigField("String", "GITHUB_OWNER", "\"nodedevfivem\"")
         // Create this repository on GitHub before publishing updates.
         buildConfigField("String", "GITHUB_REPO", "\"NODE-Player-Mobile\"")
     }
     signingConfigs {
-        if (signingFile.exists()) {
+        if (releaseSigningReady) {
             create("releaseConfig") {
-                storeFile = rootProject.file(signingProps.getProperty("storeFile"))
-                storePassword = signingProps.getProperty("storePassword")
-                keyAlias = signingProps.getProperty("keyAlias")
-                keyPassword = signingProps.getProperty("keyPassword")
+                storeFile = rootProject.file(requireNotNull(signingStorePath))
+                storePassword = requireNotNull(signingStorePassword)
+                keyAlias = requireNotNull(signingKeyAlias)
+                keyPassword = requireNotNull(signingKeyPassword)
             }
         }
     }
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
-            if (signingFile.exists()) signingConfig = signingConfigs.getByName("releaseConfig")
+            if (releaseSigningReady) signingConfig = signingConfigs.getByName("releaseConfig")
         }
     }
     buildFeatures { compose = true; buildConfig = true }

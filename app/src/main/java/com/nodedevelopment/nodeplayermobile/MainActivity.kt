@@ -66,6 +66,18 @@ class MainActivity : ComponentActivity() {
             )
         }
     }
+    override fun onResume() {
+        super.onResume()
+        // Return from Android's "Install unknown apps" permission screen:
+        // continue the verified download without making the user fetch it again.
+        activeViewModel?.let { vm ->
+            try {
+                vm.updater.resumePendingInstall()?.let { startActivity(it) }
+            } catch (e: Exception) {
+                vm.say("Cannot launch update installer: ${e.message}")
+            }
+        }
+    }
     override fun onStart() {
         super.onStart()
         val observerLocal = object : ContentObserver(scanHandler) {

@@ -125,17 +125,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun checkForUpdates(manual: Boolean = false) = viewModelScope.launch {
         try {
             val next = updater.check()
-            updateMutable.value = next
+            updateMutable.value = if (next != null && (!updater.isSnoozed(next.version) || manual)) next else null
             if (manual && next == null) say("You're using the latest version")
         } catch (e: Exception) { if (manual) say("Unable to check updates: ${e.message}") }
     }
-    fun dismissUpdate() { updateMutable.value = null }
+    fun dismissUpdate() {
+        updateMutable.value?.let { updater.remindLater(it.version) }
+        updateMutable.value = null
+    }
     fun installUpdate(onReady: (android.content.Intent) -> Unit) = viewModelScope.launch {
         val next = updateMutable.value ?: return@launch
         updatingMutable.value = true; progressMutable.value = 0
         try {
             val apk = updater.download(next) { progressMutable.value = it }
             onReady(updater.startInstall(apk))
+            updateMutable.value = null
         } catch (e: Exception) { say("Update failed: ${e.message}") }
         finally { updatingMutable.value = false }
     }

@@ -249,13 +249,13 @@ fun NodeApp(
             AlertDialog(onDismissRequest = { if (!updating) vm.dismissUpdate() },
                 title = { Text("NODE Player update available", color = CYAN) },
                 text = { Column {
-                    Text("Version ${update!!.version} is ready", fontWeight = FontWeight.Bold)
+                    Text("Current: ${BuildConfig.VERSION_NAME}  •  New: ${update!!.version}", fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(12.dp))
                     Text(update!!.notes.ifBlank { "Improvements and fixes." }.take(700), color = MUTED)
                     if (updating) { Spacer(Modifier.height(16.dp)); LinearProgressIndicator(progress = { percent / 100f }, modifier = Modifier.fillMaxWidth()); Text("Downloading… $percent%") }
                 } },
                 confirmButton = { TextButton(enabled = !updating, onClick = { vm.installUpdate(openIntent) }) { Text("UPDATE NOW") } },
-                dismissButton = { TextButton(enabled = !updating, onClick = vm::dismissUpdate) { Text("Maybe Later") } })
+                dismissButton = { TextButton(enabled = !updating, onClick = vm::dismissUpdate) { Text("LATER (24H)") } })
         }
         if (message != null) {
             AlertDialog(onDismissRequest = vm::clearMessage,

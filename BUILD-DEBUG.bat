@@ -11,6 +11,13 @@ if errorlevel 1 (
   exit /b 1
 )
 echo.
-echo DEBUG APK: app\build\outputs\apk\debug\app-debug.apk
+if not exist "DEBUG-OUTPUT" mkdir "DEBUG-OUTPUT"
+copy /Y "app\build\outputs\apk\debug\app-debug.apk" "DEBUG-OUTPUT\NODE-Player.apk" >nul
+if errorlevel 1 (
+  echo Could not copy APK to DEBUG-OUTPUT.
+  pause
+  exit /b 1
+)
+echo DEBUG APK: DEBUG-OUTPUT\NODE-Player.apk
 echo This DEBUG APK cannot update a separately signed RELEASE installation.
 pause

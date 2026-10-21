@@ -1,0 +1,74 @@
+TAG:
+v0.1.2
+
+RELEASE TITLE:
+NODE Player Mobile v0.1.2 — In-App Updates & Signed APK
+
+RELEASE DESCRIPTION:
+
+🎵 NODE PLAYER MOBILE v0.1.2
+The Classic Music Experience. Reimagined.
+Developed by NODE Development.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚀 WHAT'S NEW
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ In-app GitHub Release update notifications.
+✅ UPDATE NOW or LATER (24-hour reminder).
+✅ Current and latest version displayed.
+✅ Download new APK from within the app.
+✅ Display update download progress.
+✅ Verify official APK SHA-256 checksum.
+✅ Check APK package ID, version and compatible signing key.
+✅ Resume the installer after Android installation permission is granted.
+✅ Android system installer handles user approval.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+📦 APK & RELEASE IMPROVEMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Downloaded installation file is now NODE-Player.apk.
+✅ New permanent signed-release GitHub Actions build workflow.
+✅ Signed release ships NODE-Player.apk and NODE-Player.apk.sha256.
+✅ Existing debug/test build workflow kept for development.
+✅ App version: 0.1.2 (versionCode 3).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎵 EXISTING FEATURES PRESERVED
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Offline music playback and background controls.
+✅ Default Music folder library and MP3 importing.
+✅ Custom folders, Artists, Albums and Favorites.
+✅ Playlists, search, shuffle and repeat.
+✅ Song title renaming inside the library.
+✅ Active-song cyan highlight and animated playing bars.
+✅ NODE Player official design and branding.
+✅ No accounts, online database or subscriptions.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔒 PRIVACY, SIGNING & INSTALLATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Internet only needed to check/download updates.
+• Android asks the user to approve APK installation.
+• Future in-place updates must reuse the same release signing certificate.
+• Previously installed temporary DEBUG APKs might not accept a signed
+  release APK directly because Android requires compatible signatures.
+• Shared Music folder MP3 files remain on the phone.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+📱 REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+Android 10 or newer.
+Developer: NODE Development.
+Price: Completely FREE.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+📦 ATTACH THESE TWO OFFICIAL ASSETS
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+NODE-Player.apk
+NODE-Player.apk.sha256
+
+Only publish after the official signed APK builds and has been tested
+on a real Android phone. Do NOT publish GitHub's DEBUG APK here.
+
+NODE DEVELOPMENT
+Building Software for Everyone.

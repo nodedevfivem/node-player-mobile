@@ -1,37 +1,50 @@
-# NODE Player Mobile — signed APK GitHub Releases
+# NODE Player Mobile — v0.1.2 and future signed GitHub Releases
 
-## ONE-TIME SETUP
+## Source and APK naming
 
-1. Install Android Studio with Android SDK Platform 35 and Java/JDK 17+.
-2. Create a GitHub repository under `nodedevfivem` named `NODE-Player-Mobile` (or change GITHUB_REPO/GITHUB_OWNER in `app/build.gradle.kts` before publishing).
-3. Run `SETUP-GRADLE-WRAPPER.bat` on a Windows PC **with internet access**. The script downloads Gradle's official wrapper JAR and validates its published SHA-256. Subsequent Gradle dependency downloads also require internet; actual music playback does not.
-4. Make a **private, permanent signing key** (never share this key with ChatGPT, GitHub, or end users):
+- Application name: **NODE Player Mobile**.
+- Stable package ID: `com.nodedevelopment.nodeplayermobile` (do not change).
+- Artifact/test APK filename: **`NODE-Player.apk`**.
+- Official GitHub Release assets: **`NODE-Player.apk`** and **`NODE-Player.apk.sha256`**.
+- Version in Gradle: `versionCode=3`, `versionName=0.1.2`, tag `v0.1.2`.
 
-   `keytool -genkeypair -v -keystore node-player-release.jks -alias nodeplayer -keyalg RSA -keysize 3072 -validity 10000`
+## ONE-TIME PRIVATE SIGNING IDENTITY — keep forever
 
-   Store the file safely outside the public source repository and make backup copies. Use an alias/password you can keep securely.
-5. Copy `signing.properties.example` to `signing.properties`. Put your real `storeFile` path, passwords, and `keyAlias` there. Neither this file nor the `.jks` is ever included in distributed source ZIPs.
+You need a JDK's `keytool` on Windows **only for key generation**, not Android Studio. Run `CREATE-PRIVATE-SIGNING-KEY.bat` in this folder. It creates:
 
-## FIRST OFFICIAL RELEASE
+- `../NODE-Player-SIGNING-PRIVATE/node-player-release.jks` (private keystore)
+- `../NODE-Player-SIGNING-PRIVATE/KEYSTORE-BASE64-PRIVATE.txt` (temporary copy for uploading the private GitHub Secret)
 
-1. Test on a real Android 10+ phone via `BUILD-DEBUG.bat` or Android Studio. Debug and release APKs are signed with DIFFERENT keys.
-2. Run `SIGN-RELEASE.bat`. It builds a signed APK and generates its `.apk.sha256` companion in `RELEASE-OUTPUT`.
-3. Create a GitHub Release with tag `v0.1.0`; attach BOTH assets from `RELEASE-OUTPUT`.
-4. Install that release APK on devices. Later updates can be installed over it using the app's updater if the exact same application ID and release keystore are used.
+The folder is OUTSIDE the project root, so dragging project files onto GitHub cannot include it. Back up `.jks` and the passwords privately; delete the temporary Base64 file after storing the secret. **Do not upload to GitHub Code, paste in chat, or publish with the release.** The script will refuse to overwrite an existing key. The private file is NOT in the provided full-source ZIP.
 
-## EVERY UPDATE
+If the JDK isn't installed, get a reputable JDK 17+; no Android Studio needed. The script asks for a password; for default PKCS12 both store and key use that password. Use the same key for **every** future official version.
 
-1. Increase `versionCode` (integer; MUST increase), and `versionName` (e.g. `0.1.1`) in `app/build.gradle.kts`.
-2. Also update the version embedded in the output name in `SIGN-RELEASE.bat`, e.g. replace `v0.1.0` with `v0.1.1` for that release.
-3. Run the release script and check the signed APK and `.sha256` exist.
-4. Publish GitHub Release tag `v0.1.1` (not a draft or prerelease), upload matching APK and `.apk.sha256` assets.
-5. The app requests the latest release metadata from the public GitHub Releases API when opened online, shows Update Now / Maybe Later, validates the new APK's SHA-256, and hands it to Android's installer. Users may need to allow installation from this app in system settings. Android enforces signature compatibility.
+### GitHub encrypted Secrets (4, one-time)
 
-### Security / integrity
+In repository `nodedevfivem/node-player-mobile` go to **Settings → Secrets and variables → Actions → New repository secret**.
 
-* NEVER commit `signing.properties`, `.jks`, passwords, or signing key material.
-* `.apk.sha256` verifies the downloaded file's integrity. SHA-256 assets are not a substitute for the Android signing certificate: Android's package installer checks installed app signature continuity.
-* Since the checksum itself is hosted in the same GitHub release, repository account security is important (enable GitHub 2FA).
-* Release downloads require internet, but no internet is needed for local music library/playback.
-* App intentionally does NOT force upgrades or silently install APKs.
-* Do not change `applicationId` after release or you will break in-place upgrades.
+1. `NODE_PLAYER_KEYSTORE_BASE64`: the full Base64 string from the private local text file.
+2. `NODE_PLAYER_STORE_PASSWORD`: the private keystore password.
+3. `NODE_PLAYER_KEY_ALIAS`: `nodeplayer` (or your chosen key alias).
+4. `NODE_PLAYER_KEY_PASSWORD`: the private key password (normally the same as store for PKCS12).
+
+Do not add these to a source file. GitHub Actions reconstructs the key temporarily on its secure build runner and deletes it when the job ends.
+
+## Build official release in GitHub Actions
+
+1. Commit the updated source, including `.github/workflows/release-build.yml`, to `main`.
+2. GitHub Actions → **Build SIGNED NODE-Player APK (Official Release)** → **Run workflow** on `main`.
+3. Ensure green success. Download `NODE-Player-v0.1.2-SIGNED-RELEASE` artifact and extract it.
+4. Confirm `NODE-Player.apk` and `NODE-Player.apk.sha256` are present. The workflow checks the Android signing certificate before producing the artifact.
+5. GitHub Releases → **Draft a new release** → tag **`v0.1.2`**, release title **NODE Player Mobile v0.1.2 — In-App Updates & Signed APK**. Attach BOTH files as release assets (not ZIP). Use the provided full description, then publish a normal (not pre-release) release after testing.
+
+### Future releases
+
+Bump `versionCode` and `versionName`, update workflow artifact descriptions, reuse the **same GitHub Secrets** and key, create a matching public release with `NODE-Player.apk` and `NODE-Player.apk.sha256`. GitHub Releases `/latest` returns the newest published stable release, which NODE Player checks when opened online. `UPDATE NOW` verifies and downloads the APK then hands it to Android's installer; `LATER` snoozes that version for 24h. No automatic silent installation is possible for ordinary sideloaded apps.
+
+## Important limitations
+
+- The v0.1.0/v0.1.1 GitHub Actions debug APK has an ephemeral debug signature. A new official release key cannot update that debug APK in place. Android's signature checks are mandatory. Back up data before uninstalling; app-private playlists/favorites/names can be lost on uninstall. Original MP3 files in shared storage normally remain.
+- A GitHub Actions **test** artifact is NOT an official GitHub Release. Only a published non-prerelease Release containing both assets is discoverable by the in-app updater.
+- The `.sha256` file is integrity protection; Android's signer validation is an independent essential security step.
+- Public music playback does not need Wi-Fi or mobile data. Only GitHub update checking and downloading do.

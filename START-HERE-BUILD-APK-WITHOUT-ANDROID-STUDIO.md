@@ -1,36 +1,36 @@
-# NODE Player Mobile v0.1.1 — build APK without Android Studio
+# NODE Player Mobile v0.1.2 — build NODE-Player.apk with GitHub (no Android Studio)
 
-You do not need Android Studio, Java, or the Android SDK installed on your PC.
-GitHub Actions builds the APK on a hosted build runner and provides it as a downloadable artifact.
+## A. Quick test APK (for your phone)
 
-## One-time upload (easiest with the ChatGPT GitHub connection)
+1. Copy the **v0.1.2 UPDATE ONLY** ZIP's contents into `D:\NODE_APPS\NODE-Player-Mobile` and overwrite matching files. Make sure hidden `.github/workflows` files are included. Or use the FULL SOURCE ZIP.
+2. Upload the changed files to your existing GitHub repository `nodedevfivem/node-player-mobile` at **the same paths** (commit to `main`). Do **not** upload any private `.jks`, `signing.properties`, backup key or password.
+3. GitHub Actions runs **Build Android APK (No Android Studio)** on pushes to `main`; alternatively run it manually.
+4. After a green build, open the workflow's Summary and scroll to **Artifacts**. Download `NODE-Player-v0.1.2-TEST-APK`.
+5. Extract the ZIP. The actual APK inside it is **`NODE-Player.apk`**. Install/test on Android 10+.
 
-1. Make a GitHub repository named `NODE-Player-Mobile` under the account `nodedevfivem`.
-2. Publish the **contents** of this project's source directory into the repository's main branch. Preserve all nested folder paths, including `.github/workflows/debug-build.yml`. Do NOT upload the ZIP as a single repository file; GitHub needs to see the source files.
-3. If available, connect GitHub to ChatGPT, so that future source changes can be prepared or published with fewer manual steps, subject to your approval.
+The TEST APK is debug-signed on GitHub's short-lived build runner. It is NOT a public signed release. **Do not uninstall an existing test app just to make it install**—that can erase local playlists/favorites/names.
 
-## Download the test APK
+## B. Official permanently signed APK (for GitHub Releases and in-app updates)
 
-1. Open your `NODE-Player-Mobile` GitHub repository.
-2. Select **Actions** at the top.
-3. Select **Build Android APK (No Android Studio)** from the left.
-4. Click **Run workflow** and run it on `main` (or select the newest run automatically started after an upload).
-5. Wait for a green check (if a red X appears, open the job log and send the error to ChatGPT for a code fix).
-6. Open that run and scroll to **Artifacts**.
-7. Download `NODE-Player-Mobile-v0.1.1-TEST-APK.zip`.
-8. Extract the APK (`app-debug.apk`) and open it on your Android device. You may need to allow installing apps from that source.
+1. **Once only:** Set up a permanent release signing key privately. You can run `CREATE-PRIVATE-SIGNING-KEY.bat` on Windows if a JDK `keytool` is available (JDK, NOT Android Studio), or create a private key using another secure JDK installation. Back up the private keystore and passwords offline.
+2. On GitHub repository **Settings → Secrets and variables → Actions**, add these repository secrets:
+   - `NODE_PLAYER_KEYSTORE_BASE64` — full Base64 encoded keystore, no line breaks
+   - `NODE_PLAYER_STORE_PASSWORD` — private keystore password
+   - `NODE_PLAYER_KEY_ALIAS` — e.g. `nodeplayer`
+   - `NODE_PLAYER_KEY_PASSWORD` — key password (for standard PKCS12 same as keystore password)
+3. Go to **Actions → Build SIGNED NODE-Player APK (Official Release)**, select `main`, then **Run workflow**. This action intentionally will NOT run automatically on every push.
+4. A successful action has artifact `NODE-Player-v0.1.2-SIGNED-RELEASE`. Download and extract its ZIP to get **TWO files**: `NODE-Player.apk` and `NODE-Player.apk.sha256`.
+5. Create a **normal public GitHub Release**, tag `v0.1.2` (not draft / not pre-release), attach **BOTH files** directly as release assets. Paste the supplied release description. Do not attach the debug APK by accident.
+6. Future users who originally installed the permanently signed public APK can use **UPDATE NOW** inside NODE Player after you publish the next higher-version signed release with the SAME private key. Android still asks for installation approval.
 
-## IMPORTANT: test APK versus official release APK
+## C. Critical one-time transition from v0.1.0/v0.1.1 testing APKs
 
-- The GitHub Actions output is a **debug/testing APK**. It is installable on Android 10+ but isn't the long-term signing identity used for public updates.
-- Each fresh cloud runner can use a different ephemeral Android debug signing key. A subsequent debug APK may not update over the old one; you may have to uninstall the earlier test build. Uninstalling may remove the app's local database. Music files in your regular `Music/` folder are not stored inside the app and aren't deleted by an uninstall.
-- To distribute **official in-place auto-updates**, we'll need one permanent, privately controlled Android release signing key. Use the release guide to create/configure it. Never put keystore or passwords in the source ZIP or public repository.
-- Do not publish a GitHub v0.1.0 Release until the application has been successfully compiled and tested on a real phone.
+The GitHub-hosted debug APK is signed with a different certificate from your new official release key. Android will reject a direct in-place update between those signers, even with the same name or package ID. This limitation cannot be safely bypassed. **Before uninstalling a debug build, understand that app-private playlists, favorites and custom song names may be lost.** User music files in shared Music storage do not normally disappear when uninstalling.
 
-## No internet is needed while listening to your local music
+## D. Common mistakes
 
-GitHub Actions needs internet to download Android build dependencies, and app updates require internet. Actual local song playback and music library management do not.
-
-## Common misconception
-
-The source ZIP supplied in ChatGPT is NOT an APK. It must be built first. If ChatGPT cannot access an Android build environment and your repository, it cannot truthfully claim to have created a working APK.
+- `app-debug.apk` in `app/build/outputs` is Gradle's temporary output name; the **downloadable file** from the workflows is renamed `NODE-Player.apk`.
+- ZIP artifacts shown in GitHub Actions are **not** GitHub Releases. To trigger in-app checks, upload the two official files to a new public GitHub Release.
+- Naming a debug APK `NODE-Player.apk` does NOT make it release-signed or upgrade-compatible.
+- Never share private signing keys/passwords with ChatGPT or post them in GitHub source.
+- Publishing v0.1.2 cannot trigger an update alert in v0.1.2 itself. Test end-to-end **0.1.2 → 0.1.3** after publishing your next signed release.
