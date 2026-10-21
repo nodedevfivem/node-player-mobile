@@ -1,0 +1,5 @@
+# Copy to signing.properties in the project root. DO NOT upload signing.properties or the keystore.
+storeFile=PRIVATE-DO-NOT-UPLOAD/node-player-release.jks
+storePassword=REPLACE_WITH_A_STRONG_PASSWORD
+keyAlias=nodeplayer
+keyPassword=REPLACE_WITH_A_STRONG_PASSWORD

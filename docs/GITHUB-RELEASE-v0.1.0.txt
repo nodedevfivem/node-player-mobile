@@ -1,0 +1,26 @@
+TAG: v0.1.0
+TITLE: NODE Player Mobile v0.1.0 — Initial Android Release
+
+NODE Player Mobile is here — the classic music experience, reimagined for Android.
+
+What's included:
+• 100% offline playback from the Music folder (Android 10+)
+• Multi-file Import Music from Downloads and other local folders
+• Custom folder support via Android folder picker
+• All Songs, Artists, Albums, Favorites and local Playlists
+• Search and sorting, embedded album art, mini player and Now Playing
+• Shuffle, Repeat, Seek, Next and Previous
+• Background playback, lock-screen and Bluetooth media controls
+• Original cyan/dark NODE interface and official NODE Player logo
+• GitHub Releases update notices with Update Now / Maybe Later and SHA-256 verification
+
+No subscriptions. No accounts. No online database. Your music remains on your device.
+
+Install:
+1. Download NODE-Player-Mobile-v0.1.0.apk.
+2. Open the APK on Android 10 or newer; approve Android's install prompt.
+3. Open NODE Player, grant Music permission, and import your songs.
+
+Release files to attach: signed APK and matching .apk.sha256 checksum.
+
+By NODE Development.
